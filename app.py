@@ -483,73 +483,211 @@ def sentiment_analysis_page():
     if st.session_state.articles:
         st.subheader(f"Analyzing {len(st.session_state.articles)} Articles")
         
-        # Placeholder for sentiment analysis
-        with st.spinner("Performing sentiment analysis..."):
-            import time
-            time.sleep(1)  # Simulate processing
+        # Perform real sentiment analysis
+        from sentiment_analyzer import get_analyzer
         
-        # Display sentiment analysis results (placeholder)
-        st.success("Sentiment Analysis Complete!")
+        with st.spinner("Performing AI-powered sentiment analysis using VADER + TextBlob..."):
+            analyzer = get_analyzer()
+            analysis_results = analyzer.analyze_articles_batch(st.session_state.articles)
         
-        # Overall sentiment summary
+        # Display sentiment analysis results
+        st.success("✅ Sentiment Analysis Complete!")
+        
+        # Get overall statistics
+        stats = analysis_results['overall_statistics']
+        
+        # Overall sentiment summary with color-coded metrics
         st.markdown("---")
-        st.subheader("Overall Sentiment Summary")
+        st.subheader("📊 Overall Sentiment Summary")
+        
+        # Display overall sentiment with emoji and color
+        overall_sentiment = stats['overall_sentiment']
+        sentiment_emoji = analyzer.get_sentiment_emoji(overall_sentiment)
+        sentiment_color = analyzer.get_sentiment_color(overall_sentiment)
+        
+        st.markdown(f"### {sentiment_emoji} Overall Sentiment: <span style='color: {sentiment_color};'>{overall_sentiment}</span>", unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric(label="Positive", value="35%", delta="5%")
+            st.metric(
+                label="😊 Positive", 
+                value=f"{stats['positive_percentage']}%",
+                delta=f"{stats['positive_count']} articles"
+            )
         with col2:
-            st.metric(label="Neutral", value="45%", delta="-2%")
+            st.metric(
+                label="😐 Neutral", 
+                value=f"{stats['neutral_percentage']}%",
+                delta=f"{stats['neutral_count']} articles"
+            )
         with col3:
-            st.metric(label="Negative", value="20%", delta="-3%")
+            st.metric(
+                label="😢 Negative", 
+                value=f"{stats['negative_percentage']}%",
+                delta=f"{stats['negative_count']} articles"
+            )
         
-        # Sentiment distribution chart placeholder
+        # Analysis quality metrics
         st.markdown("---")
-        st.subheader("Sentiment Distribution")
-        st.info("🚧 Sentiment visualization charts will be displayed here (pie chart, bar chart, timeline)")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(
+                label="🎯 Average Confidence",
+                value=f"{stats['average_confidence']}%",
+                help="How confident the AI is in its predictions"
+            )
+        with col2:
+            st.metric(
+                label="📈 Compound Score",
+                value=f"{stats['average_compound_score']:.4f}",
+                help="Overall sentiment score (-1 to +1)"
+            )
         
-        # Individual article sentiments
+        # Clean, minimal visualizations
         st.markdown("---")
-        st.subheader("Individual Article Sentiments")
+        st.subheader("📊 Sentiment Distribution")
         
-        for idx, article in enumerate(st.session_state.articles[:5], 1):
-            with st.expander(f"{idx}. {article.get('title', 'No Title')}"):
-                st.write(f"**Source:** {article.get('source', {}).get('name', 'Unknown')}")
-                st.write(f"**Published:** {article.get('publishedAt', 'Unknown')[:10]}")
-                st.write(f"**Sentiment:** Positive (Score: 0.75)")  # Placeholder
-                st.write(f"**Description:** {article.get('description', 'No description')}")
+        import plotly.graph_objects as go
+        import plotly.express as px
         
-        # Key insights
+        # Create two columns for compact chart layout
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Pie chart - Sentiment distribution
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=['Positive', 'Neutral', 'Negative'],
+                values=[stats['positive_count'], stats['neutral_count'], stats['negative_count']],
+                marker=dict(colors=['#28a745', '#ffc107', '#dc3545']),
+                hole=0.4,  # Donut chart for modern look
+                textinfo='label+percent',
+                textfont=dict(size=12),
+                hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
+            )])
+            
+            fig_pie.update_layout(
+                showlegend=False,
+                margin=dict(t=30, b=0, l=0, r=0),
+                height=300,
+                title=dict(text="Sentiment Split", font=dict(size=14), x=0.5, xanchor='center')
+            )
+            
+            st.plotly_chart(fig_pie, use_container_width=True)
+        
+        with col2:
+            # Bar chart - Sentiment counts
+            fig_bar = go.Figure(data=[
+                go.Bar(
+                    x=['Positive', 'Neutral', 'Negative'],
+                    y=[stats['positive_count'], stats['neutral_count'], stats['negative_count']],
+                    marker=dict(color=['#28a745', '#ffc107', '#dc3545']),
+                    text=[stats['positive_count'], stats['neutral_count'], stats['negative_count']],
+                    textposition='auto',
+                    hovertemplate='<b>%{x}</b><br>Articles: %{y}<br>Percentage: %{customdata}%<extra></extra>',
+                    customdata=[stats['positive_percentage'], stats['neutral_percentage'], stats['negative_percentage']]
+                )
+            ])
+            
+            fig_bar.update_layout(
+                yaxis_title="Article Count",
+                margin=dict(t=30, b=40, l=40, r=0),
+                height=300,
+                showlegend=False,
+                title=dict(text="Article Count by Sentiment", font=dict(size=14), x=0.5, xanchor='center')
+            )
+            
+            st.plotly_chart(fig_bar, use_container_width=True)
+        
+        # Individual article sentiments with detailed breakdown
         st.markdown("---")
-        st.subheader("Key Insights")
-        st.write("• Majority of news articles show a neutral to positive sentiment")
-        st.write("• Recent articles show an upward trend in positive sentiment")
-        st.write("• Main topics: Policy announcements, public events, social initiatives")
+        st.subheader("📰 Individual Article Sentiments")
+        
+        individual_results = analysis_results['individual_results']
+        
+        for idx, (article, sentiment) in enumerate(zip(st.session_state.articles, individual_results), 1):
+            classification = sentiment['classification']
+            emoji = analyzer.get_sentiment_emoji(classification)
+            color = analyzer.get_sentiment_color(classification)
+            
+            # Create colored header for expander
+            expander_title = f"{emoji} {idx}. {article.get('title', 'No Title')}"
+            
+            with st.expander(expander_title):
+                # Article metadata
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Source:** {article.get('source', {}).get('name', 'Unknown')}")
+                    st.write(f"**Published:** {article.get('publishedAt', 'Unknown')[:10]}")
+                with col2:
+                    st.write(f"**Author:** {article.get('author', 'Unknown')}")
+                
+                st.markdown("---")
+                
+                # Sentiment breakdown with color
+                st.markdown(f"### Sentiment: <span style='color: {color}; font-weight: bold;'>{classification}</span>", unsafe_allow_html=True)
+                
+                # Detailed scores
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Positive", f"{sentiment['positive']*100:.1f}%")
+                with col2:
+                    st.metric("Neutral", f"{sentiment['neutral']*100:.1f}%")
+                with col3:
+                    st.metric("Negative", f"{sentiment['negative']*100:.1f}%")
+                with col4:
+                    st.metric("Confidence", f"{sentiment['confidence']:.1f}%")
+                
+                # Advanced metrics (displayed directly, not nested)
+                st.markdown("**🔬 Advanced Metrics:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Compound Score:** {sentiment['compound_score']:.4f}")
+                    st.write(f"**VADER Score:** {sentiment['vader_compound']:.4f}")
+                with col2:
+                    st.write(f"**TextBlob Score:** {sentiment['textblob_polarity']:.4f}")
+                    st.write(f"**Subjectivity:** {sentiment['subjectivity']:.2f} (0=objective, 1=subjective)")
+                
+                # Article description
+                st.markdown("---")
+                st.write(f"**Description:** {article.get('description', 'No description available')}")
+                
+                # Link to full article
+                if article.get('url'):
+                    st.markdown(f"[🔗 Read Full Article]({article['url']})")
+        
+        # AI-Generated Key Insights
+        st.markdown("---")
+        st.subheader("💡 AI-Generated Key Insights")
+        insights = analyzer.get_sentiment_insights(analysis_results)
+        for insight in insights:
+            st.write(f"• {insight}")
         
         # Export to PDF button - centered
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Export as PDF", use_container_width=True, type="primary"):
+            if st.button("📄 Export as PDF", use_container_width=True, type="primary"):
                 try:
                     # Import PDF generator
                     from pdf_generator import generate_sentiment_pdf
                     
-                    # Prepare data for PDF
+                    # Prepare data for PDF with real sentiment analysis results
                     pdf_data = {
                         'party': st.session_state.selected_party,
                         'state': st.session_state.selected_state,
                         'username': st.session_state.username,
-                        'articles_count': len(st.session_state.articles),
-                        'positive_pct': 35,
-                        'neutral_pct': 45,
-                        'negative_pct': 20,
-                        'insights': [
-                            "Majority of news articles show a neutral to positive sentiment",
-                            "Recent articles show an upward trend in positive sentiment",
-                            "Main topics: Policy announcements, public events, social initiatives"
-                        ],
-                        'articles': st.session_state.articles
+                        'articles_count': stats['total_articles'],
+                        'positive_pct': stats['positive_percentage'],
+                        'neutral_pct': stats['neutral_percentage'],
+                        'negative_pct': stats['negative_percentage'],
+                        'positive_count': stats['positive_count'],
+                        'neutral_count': stats['neutral_count'],
+                        'negative_count': stats['negative_count'],
+                        'insights': insights,
+                        'articles': st.session_state.articles,
+                        'individual_sentiments': individual_results,
+                        'average_confidence': stats['average_confidence'],
+                        'overall_sentiment': stats['overall_sentiment']
                     }
                     
                     # Generate PDF filename
@@ -557,21 +695,21 @@ def sentiment_analysis_page():
                     filename = f"sentiment_analysis_{timestamp}.pdf"
                     
                     # Generate PDF
-                    with st.spinner("Generating PDF report..."):
+                    with st.spinner("Generating comprehensive PDF report with AI analysis..."):
                         generate_sentiment_pdf(filename, pdf_data)
                     
                     # Provide download button
                     with open(filename, "rb") as pdf_file:
                         pdf_bytes = pdf_file.read()
                         st.download_button(
-                            label="Download PDF Report",
+                            label="⬇️ Download PDF Report",
                             data=pdf_bytes,
                             file_name=filename,
                             mime="application/pdf",
                             use_container_width=True
                         )
                     
-                    st.success("PDF report generated successfully!")
+                    st.success("✅ PDF report generated successfully!")
                     
                     # Clean up file after download
                     try:
