@@ -14,6 +14,7 @@ from datetime import datetime
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from colors import SENTIMENT_COLORS, MAIN_BLUE
 
 def create_sentiment_charts(data):
     """
@@ -32,7 +33,7 @@ def create_sentiment_charts(data):
     neutral_pct = data.get('neutral_pct', 0)
     negative_pct = data.get('negative_pct', 0)
     
-    colors_list = ['#28a745', '#ffc107', '#dc3545']  # Green, Yellow, Red
+    colors_list = SENTIMENT_COLORS  # Use new professional color palette
     labels = ['Positive', 'Neutral', 'Negative']
     counts = [positive_count, neutral_count, negative_count]
     percentages = [positive_pct, neutral_pct, negative_pct]
@@ -53,7 +54,7 @@ def create_sentiment_charts(data):
         autotext.set_color('white')
         autotext.set_fontsize(12)
     
-    ax1.set_title('Sentiment Distribution', fontsize=14, weight='bold', color='#1F77B4', pad=20)
+    ax1.set_title('Sentiment Distribution', fontsize=14, weight='bold', color=MAIN_BLUE, pad=20)
     ax1.axis('equal')
     
     # Save pie chart
@@ -74,7 +75,7 @@ def create_sentiment_charts(data):
                 ha='center', va='bottom', fontsize=12, weight='bold')
     
     ax2.set_ylabel('Article Count', fontsize=11, weight='bold')
-    ax2.set_title('Article Count by Sentiment', fontsize=14, weight='bold', color='#1F77B4', pad=20)
+    ax2.set_title('Article Count by Sentiment', fontsize=14, weight='bold', color=MAIN_BLUE, pad=20)
     ax2.set_ylim(0, max(counts) * 1.2 if max(counts) > 0 else 10)
     ax2.grid(axis='y', alpha=0.3, linestyle='--')
     ax2.set_axisbelow(True)
@@ -121,7 +122,7 @@ def generate_sentiment_pdf(filename, data):
         'CustomTitle',
         parent=styles['Heading1'],
         fontSize=24,
-        textColor=colors.HexColor('#1F77B4'),
+        textColor=colors.HexColor(MAIN_BLUE),
         spaceAfter=30,
         alignment=TA_CENTER,
         fontName='Helvetica-Bold'
@@ -131,7 +132,7 @@ def generate_sentiment_pdf(filename, data):
         'CustomHeading',
         parent=styles['Heading2'],
         fontSize=16,
-        textColor=colors.HexColor('#1F77B4'),
+        textColor=colors.HexColor(MAIN_BLUE),
         spaceAfter=12,
         spaceBefore=12,
         fontName='Helvetica-Bold'
@@ -206,7 +207,7 @@ def generate_sentiment_pdf(filename, data):
     
     sentiment_table = Table(sentiment_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1*inch])
     sentiment_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F77B4')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(MAIN_BLUE)),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
