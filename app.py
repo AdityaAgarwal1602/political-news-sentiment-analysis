@@ -437,17 +437,32 @@ def news_page():
 def sentiment_analysis_page():
     """Sentiment Analysis Results Page"""
     # Add anchor at top and auto-scroll script
-    st.markdown('<div id="top"></div>', unsafe_allow_html=True)
+    # st.markdown('<div id="top"></div>', unsafe_allow_html=True)
     
-    # JavaScript to scroll to top
-    st.markdown("""
-        <script>
-            setTimeout(function() {
-                window.parent.document.querySelector('.main').scrollTop = 0;
-            }, 100);
-        </script>
-    """, unsafe_allow_html=True)
-    
+    # # JavaScript to scroll to top
+    # st.markdown("""
+    #     <script>
+    #         setTimeout(function() {
+    #             window.parent.document.querySelector('.main').scrollTop = 0;
+    #         }, 100);
+    #     </script>
+    # """, unsafe_allow_html=True)
+
+    if "scroll_top" not in st.session_state:
+        st.session_state.scroll_top = True
+
+    if st.session_state.scroll_top:
+        st.markdown(
+            """
+            <script>
+            window.scrollTo(0,0);
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
+    st.session_state.scroll_top = False
+
+    #----
     # Display logo in header - compact layout
     col1, col2 = st.columns([1, 4])
     with col1:
